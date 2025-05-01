@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fields of Illusion</title>
+  <title>Fields of Illusion - Whack-a-Mole</title>
   <style>
     body, html {
       margin: 0;
@@ -16,100 +16,120 @@
     .container {
       position: relative;
       height: 100%;
-      background: url('https://images.freeimages.com/images/large-previews/76e/green-field-landscape-1337336.jpg') no-repeat center center/cover;
+      background: url('https://images.freeimages.com/images/large-previews/76e/green-field-landscape-1337336.jpg') no-repeat centre centre/cover;
       cursor: pointer;
     }
 
-    h1 {
+    #scoreBoard {
       position: absolute;
-      top: 30px;
+      top: 20px;
+      left: 20px;
+      colour: white;
+      font-size: 1.5rem;
+      text-shadow: 1px 1px 5px black;
+    }
+
+    #startBtn {
+      position: absolute;
+      bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      color: white;
-      font-size: 3rem;
-      text-shadow: 2px 2px 10px black;
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      box-shadow: 1px 1px 5px rgba(0,0,0,0.5);
     }
 
-    .magic {
+    .mole {
       position: absolute;
-      border-radius: 50%;
-      pointer-events: none;
-      animation: sparkle 800ms ease-out forwards;
-    }
-
-    @keyframes sparkle {
-      0% {
-        opacity: 1;
-        transform: translate(0, 0) scale(1);
-        filter: blur(0px);
-      }
-      50% {
-        opacity: 0.7;
-        transform: translate(var(--dx), var(--dy)) scale(var(--scale));
-        filter: blur(2px);
-      }
-      100% {
-        opacity: 0;
-        transform: translate(calc(var(--dx) * 2), calc(var(--dy) * 2)) scale(var(--scale));
-        filter: blur(4px);
-      }
+      width: 100px;
+      height: 100px;
+      pointer-events: auto;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.1s ease-out;
     }
   </style>
 </head>
 <body>
   <div class="container" id="field">
-    <h1>Fields of Illusion</h1>
+    <div id="scoreBoard">Score: 0</div>
+    <button id="startBtn">Start Game</button>
   </div>
 
-  <!-- Background music embed -->
-  <iframe id="bgMusic" src="https://www.youtube.com/embed/6xUnSVTh8fI?autoplay=1&loop=1&playlist=6xUnSVTh8fI&controls=0&modestbranding=1" frameborder="0" allow="autoplay" style="display:none;"></iframe>
-
-  <!-- Magic click sound for effects -->
-  <audio id="magicSound" preload="auto" playsinline>
-    <source src="https://www.soundjay.com/magic/sounds/magic-chime-01.mp3" type="audio/mpeg">
-    Your browser does not support the audio element.
+  <!-- Whack sound -->
+  <audio id="whackSound" preload="auto">
+    <source src="https://www.soundjay.com/button/sounds/button-16.mp3" type="audio/mpeg">
   </audio>
 
   <script>
     const field = document.getElementById('field');
-    const sound = document.getElementById('magicSound');
+    const scoreBoard = document.getElementById('scoreBoard');
+    const startBtn = document.getElementById('startBtn');
+    const whackSound = document.getElementById('whackSound');
+
+    let score = 0;
+    let timeUp = false;
+    const spawnInterval = 3000; // fixed 3-second spawn
 
     function randomBetween(min, max) {
       return Math.random() * (max - min) + min;
     }
 
-    // Ensure YouTube iframe starts playing
-    window.addEventListener('load', () => {
-      const iframe = document.getElementById('bgMusic');
-      // postMessage to play (some browsers restrict autoplay otherwise)
-      iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-    });
+    function updateScore() {
+      scoreBoard.textContent = `Score: ${score}`;
+    }
 
-    field.addEventListener('click', e => {
-      sound.currentTime = 0;
-      sound.play().catch(err => console.warn('Audio play blocked:', err));
+    function whack(event) {
+      score++;
+      updateScore();
+      whackSound.currentTime = 0;
+      whackSound.play().catch(() => {});
+      this.style.transform = 'scale(0.8)';
+      setTimeout(() => this.remove(), 100);
+    }
 
-      const colours = ['#ffffff', '#fffa72', '#b0eacd', '#c3baff'];
-      const count = 20;
-      for (let i = 0; i < count; i++) {
-        const magic = document.createElement('div');
-        magic.classList.add('magic');
-        const size = randomBetween(10, 30);
-        magic.style.width = `${size}px`;
-        magic.style.height = `${size}px`;
-        magic.style.background = colours[Math.floor(Math.random() * colours.length)];
-        const angle = randomBetween(0, 2 * Math.PI);
-        const dx = Math.cos(angle) * randomBetween(20, 80) + 'px';
-        const dy = Math.sin(angle) * randomBetween(20, 80) + 'px';
-        magic.style.setProperty('--dx', dx);
-        magic.style.setProperty('--dy', dy);
-        magic.style.setProperty('--scale', randomBetween(0.8, 1.5));
-        magic.style.left = `${e.clientX - size/2}px`;
-        magic.style.top = `${e.clientY - size/2}px`;
-        document.body.appendChild(magic);
-        magic.addEventListener('animationend', () => magic.remove());
-      }
-    });
+    function showMole() {
+      const mole = document.createElement('img');
+      mole.src = 'https://freeimage.host/i/3hkjKYv';
+      mole.className = 'mole';
+      const size = randomBetween(80, 120);
+      mole.style.width = `${size}px`;
+      mole.style.height = `${size}px`;
+
+      const { width, height } = field.getBoundingClientRect();
+      const x = randomBetween(0, width - size);
+      const y = randomBetween(0, height - size);
+      mole.style.left = `${x}px`;
+      mole.style.top = `${y}px`;
+
+      mole.addEventListener('click', whack);
+      field.appendChild(mole);
+
+      setTimeout(() => {
+        if (!timeUp) {
+          mole.remove();
+          showMole();
+        }
+      }, spawnInterval);
+    }
+
+    function startGame() {
+      score = 0;
+      updateScore();
+      timeUp = false;
+      startBtn.disabled = true;
+
+      showMole();
+      setTimeout(() => {
+        timeUp = true;
+        startBtn.disabled = false;
+      }, 30000);
+    }
+
+    startBtn.addEventListener('click', startGame);
   </script>
 </body>
 </html>
